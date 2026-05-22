@@ -1,12 +1,40 @@
 // ════════════════════════════════════════════
-//  SUPABASE CLIENT INITIALIZATION
+//  SUPABASE CLIENT INITIALIZATION (FIXED)
 // ════════════════════════════════════════════
 
 const SUPABASE_URL = 'https://uprhk9zcknjorj6-sm-eeac.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_upRhK9ZCkNbORj6-SM-EEA_CoKJif-l';
 
-// Initialize Supabase client
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// Initialize Supabase client with proper error handling
+let supabase = null;
+
+async function initSupabase() {
+  try {
+    // Wait for supabase to be available
+    if (!window.supabase) {
+      console.error('❌ Supabase library not loaded');
+      return false;
+    }
+    
+    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    console.log('✓ Supabase initialized successfully');
+    return true;
+  } catch (error) {
+    console.error('❌ Supabase initialization failed:', error);
+    return false;
+  }
+}
+
+// Function to ensure supabase is ready before use
+async function ensureSupabaseReady() {
+  if (!supabase) {
+    const ready = await initSupabase();
+    if (!ready) {
+      throw new Error('Supabase is not available');
+    }
+  }
+  return supabase;
+}
 
 // ════════════════════════════════════════════
 //  DRIVERS TABLE FUNCTIONS
@@ -17,7 +45,8 @@ const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
  */
 async function addDriver(driverData) {
   try {
-    const { data, error } = await supabase
+    const sb = await ensureSupabaseReady();
+    const { data, error } = await sb
       .from('drivers')
       .insert([driverData])
       .select();
@@ -37,7 +66,8 @@ async function addDriver(driverData) {
  */
 async function getAllDrivers() {
   try {
-    const { data, error } = await supabase
+    const sb = await ensureSupabaseReady();
+    const { data, error } = await sb
       .from('drivers')
       .select('*')
       .order('created_at', { ascending: false });
@@ -55,7 +85,8 @@ async function getAllDrivers() {
  */
 async function getOnlineDrivers() {
   try {
-    const { data, error } = await supabase
+    const sb = await ensureSupabaseReady();
+    const { data, error } = await sb
       .from('drivers')
       .select('*')
       .eq('status', 'online')
@@ -74,7 +105,8 @@ async function getOnlineDrivers() {
  */
 async function getDriverByEmail(email) {
   try {
-    const { data, error } = await supabase
+    const sb = await ensureSupabaseReady();
+    const { data, error } = await sb
       .from('drivers')
       .select('*')
       .eq('email', email)
@@ -93,7 +125,8 @@ async function getDriverByEmail(email) {
  */
 async function getDriverByPhone(phone) {
   try {
-    const { data, error } = await supabase
+    const sb = await ensureSupabaseReady();
+    const { data, error } = await sb
       .from('drivers')
       .select('*')
       .eq('phone', phone)
@@ -112,7 +145,8 @@ async function getDriverByPhone(phone) {
  */
 async function updateDriverStatus(driverId, status) {
   try {
-    const { data, error } = await supabase
+    const sb = await ensureSupabaseReady();
+    const { data, error } = await sb
       .from('drivers')
       .update({ status, updated_at: new Date().toISOString() })
       .eq('id', driverId)
@@ -131,7 +165,8 @@ async function updateDriverStatus(driverId, status) {
  */
 async function updateDriverLocation(driverId, latitude, longitude) {
   try {
-    const { data, error } = await supabase
+    const sb = await ensureSupabaseReady();
+    const { data, error } = await sb
       .from('drivers')
       .update({ 
         latitude, 
@@ -154,7 +189,8 @@ async function updateDriverLocation(driverId, latitude, longitude) {
  */
 async function updateDriver(driverId, updateData) {
   try {
-    const { data, error } = await supabase
+    const sb = await ensureSupabaseReady();
+    const { data, error } = await sb
       .from('drivers')
       .update({ ...updateData, updated_at: new Date().toISOString() })
       .eq('id', driverId)
@@ -173,7 +209,8 @@ async function updateDriver(driverId, updateData) {
  */
 async function deleteDriver(driverId) {
   try {
-    const { error } = await supabase
+    const sb = await ensureSupabaseReady();
+    const { error } = await sb
       .from('drivers')
       .delete()
       .eq('id', driverId);
@@ -191,6 +228,11 @@ async function deleteDriver(driverId) {
  * Usage: const subscription = subscribeToDrivers((payload) => { console.log(payload); });
  */
 function subscribeToDrivers(callback) {
+  if (!supabase) {
+    console.error('Supabase not initialized for real-time subscription');
+    return null;
+  }
+  
   const subscription = supabase
     .channel('drivers-changes')
     .on(
@@ -213,7 +255,7 @@ function subscribeToDrivers(callback) {
  * Unsubscribe from real-time changes
  */
 async function unsubscribeFromDrivers(subscription) {
-  if (subscription) {
+  if (subscription && supabase) {
     await supabase.removeChannel(subscription);
   }
 }
