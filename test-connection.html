@@ -74,14 +74,6 @@
       border-radius: 4px;
       overflow-x: auto;
     }
-    .sub-item {
-      margin-left: 1.5rem;
-      margin-top: 0.5rem;
-      padding: 0.7rem;
-      background: #0a0a0a;
-      border-left: 2px solid #555;
-      border-radius: 3px;
-    }
     button {
       background: #FFD600;
       color: #000;
@@ -134,6 +126,7 @@
     <button id="testBtn" onclick="runTests()">▶ Lancer les tests</button>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.48.0"></script>
   <script>
     const SUPABASE_URL = 'https://uprhk9zcknjorj6-sm-eeac.supabase.co';
     const SUPABASE_ANON_KEY = 'sb_publishable_upRhK9ZCkNbORj6-SM-EEA_CoKJif-l';
@@ -148,42 +141,25 @@
         testItem.style.marginTop = '1.5rem';
         testItem.style.marginBottom = '0.5rem';
       } else {
-        className += ` ${success ? 'success' : (message.includes('ℹ') ? 'info' : message.includes('⚠') ? 'warning' : 'error')}`;
+        let statusClass = 'error';
+        if (success) statusClass = 'success';
+        else if (message.includes('ℹ')) statusClass = 'info';
+        else if (message.includes('⚠')) statusClass = 'warning';
+        className += ` ${statusClass}`;
       }
       testItem.className = className;
       
-      let html = `<div class="label">${success ? '✓' : (message.includes('ℹ') ? 'ℹ' : message.includes('⚠') ? '⚠' : '✗')} ${label}</div>`;
+      let icon = '✗';
+      if (success) icon = '✓';
+      else if (message.includes('ℹ')) icon = 'ℹ';
+      else if (message.includes('⚠')) icon = '⚠';
+      
+      let html = `<div class="label">${icon} ${label}</div>`;
       if (message) html += `<div class="message">${message}</div>`;
       if (value) html += `<div class="value"><strong>Détails:</strong> ${value}</div>`;
       
       testItem.innerHTML = html;
       resultsDiv.appendChild(testItem);
-    }
-
-    async function loadSupabaseLibrary() {
-      return new Promise((resolve) => {
-        if (window.supabase) {
-          resolve(true);
-          return;
-        }
-        
-        const script = document.createElement('script');
-        script.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.48.0/dist/module.mjs';
-        script.type = 'module';
-        
-        script.onload = () => {
-          setTimeout(() => {
-            resolve(true);
-          }, 500);
-        };
-        
-        script.onerror = (e) => {
-          console.error('Erreur CDN:', e);
-          resolve(false);
-        };
-        
-        document.head.appendChild(script);
-      });
     }
 
     async function runTests() {
@@ -208,35 +184,21 @@
 
         // Test 3: Load Supabase library
         addResult('', null, '', '', 'section');
-        addResult('📦 Chargement Bibliothèque', true, 'ℹ Chargement en cours...');
         
-        const libLoaded = await loadSupabaseLibrary();
-        if (!libLoaded) {
-          addResult('Supabase Library', false, 'Erreur: CDN non accessible - Vérifiez votre connexion Internet');
+        if (!window.supabase) {
+          addResult('Supabase Library', false, 'Erreur: CDN non chargé');
           testBtn.disabled = false;
           testBtn.innerHTML = '▶ Lancer les tests';
           return;
         }
-
-        // Async import for proper module handling
-        const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.48.0/dist/module.mjs');
-
-        if (!createClient) {
-          addResult('Supabase Library', false, 'Erreur: Impossible de charger createClient');
-          testBtn.disabled = false;
-          testBtn.innerHTML = '▶ Lancer les tests';
-          return;
-        }
-
         addResult('Supabase Library', true, 'CDN chargé avec succès');
 
         // Test 4: Initialize client
         addResult('', null, '', '', 'section');
-        addResult('🔗 Initialisation Client', true, 'ℹ Création en cours...');
         
         let client;
         try {
-          client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+          client = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
           addResult('Client Supabase', true, 'Client créé avec succès');
         } catch (e) {
           addResult('Client Supabase', false, `Erreur: ${e.message}`);
@@ -245,12 +207,10 @@
           return;
         }
 
-        // Test 5: Test connection with health check
+        // Test 5: Test connection
         addResult('', null, '', '', 'section');
-        addResult('🌐 Connexion Base de Données', true, 'ℹ Test en cours...');
         
         try {
-          // Try to query system tables to verify connection
           const { data, error, status } = await client
             .from('drivers')
             .select('id')
@@ -258,34 +218,33 @@
           
           if (error) {
             if (error.code === '42P01') {
-              addResult('Connexion DB', false, `Erreur: Table 'drivers' n'existe pas`, `Code: ${error.code} - ${error.message}`);
+              addResult('Connexion DB', false, `Erreur: Table 'drivers' n'existe pas`, `Code: ${error.code}`);
             } else if (error.code === 'PGRST301') {
-              addResult('Connexion DB', false, `⚠ Accès refusé à la table 'drivers'`, `Code: ${error.code} - Vérifiez les permissions RLS`);
+              addResult('Connexion DB', false, `⚠ Accès refusé`, `Code: ${error.code} - Vérifiez les permissions RLS`);
             } else {
-              addResult('Connexion DB', false, `Erreur: ${error.message}`, `Code: ${error.code} - Status: ${status}`);
+              addResult('Connexion DB', false, `Erreur: ${error.message}`, `Code: ${error.code}`);
             }
           } else {
             addResult('Connexion DB', true, 'Connexion réussie!', 'Base de données accessible');
             
-            // Test 6: Fetch drivers data
+            // Test 6: Fetch drivers
             addResult('', null, '', '', 'section');
-            addResult('👥 Récupération Données', true, 'ℹ Requête en cours...');
             
             try {
-              const { data: drivers, error: driversError, status: driversStatus } = await client
+              const { data: drivers, error: driversError } = await client
                 .from('drivers')
                 .select('*');
               
               if (driversError) {
                 if (driversError.code === 'PGRST301') {
-                  addResult('Récupération Chauffeurs', false, `⚠ Permission refusée`, `Vérifiez les règles RLS pour la table 'drivers'`);
+                  addResult('Récupération Chauffeurs', false, `⚠ Permission refusée`, `Vérifiez les règles RLS`);
                 } else {
                   addResult('Récupération Chauffeurs', false, `Erreur: ${driversError.message}`, `Code: ${driversError.code}`);
                 }
               } else {
                 const count = drivers?.length || 0;
                 if (count === 0) {
-                  addResult('Récupération Chauffeurs', true, `⚠ Aucun chauffeur trouvé (table vide)`);
+                  addResult('Récupération Chauffeurs', true, `⚠ Aucun chauffeur trouvé`);
                 } else {
                   addResult('Récupération Chauffeurs', true, `✓ ${count} chauffeur(s) trouvé(s)`);
                   drivers.forEach((driver, i) => {
@@ -300,15 +259,15 @@
             }
           }
         } catch (e) {
-          addResult('Connexion DB', false, `Erreur critique: ${e.message}`, e.stack);
+          addResult('Connexion DB', false, `Erreur: ${e.message}`);
         }
 
         // Test 7: Summary
         addResult('', null, '', '', 'section');
-        addResult('✅ Diagnostic Terminé', true, 'ℹ Tous les tests ont été exécutés');
+        addResult('✅ Diagnostic Terminé', true, 'ℹ Tests complétés');
 
       } catch (error) {
-        addResult('Erreur Générale', false, `${error.message}`, error.stack);
+        addResult('Erreur Générale', false, `${error.message}`);
       } finally {
         testBtn.disabled = false;
         testBtn.innerHTML = '▶ Lancer les tests';
@@ -317,10 +276,7 @@
 
     // Auto-run on page load
     window.addEventListener('load', () => {
-      setTimeout(() => {
-        addResult('🚀 Démarrage du diagnostic', true, 'ℹ Cliquez sur "Lancer les tests" ou attendez...');
-        setTimeout(runTests, 1000);
-      }, 500);
+      setTimeout(runTests, 1000);
     });
   </script>
 </body>
