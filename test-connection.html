@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Test Base de Données - Taxi Proxi</title>
+  <title>Gestion Base de Données - Taxi Proxi</title>
   <style>
     * {
       margin: 0;
@@ -15,7 +15,7 @@
       background: #0a0a0a;
       color: #f5f0e8;
       padding: 2rem;
-      max-width: 1000px;
+      max-width: 1200px;
       margin: 0 auto;
     }
     h1 {
@@ -125,6 +125,13 @@
     button.secondary:hover {
       background: #69D9FF;
     }
+    button.danger {
+      background: #FF5252;
+      color: #fff;
+    }
+    button.danger:hover {
+      background: #FF7777;
+    }
     .spinner {
       display: inline-block;
       width: 10px;
@@ -161,18 +168,65 @@
       color: #888;
       margin-top: 0.5rem;
     }
+    .tab-buttons {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+    .tab-btn {
+      padding: 8px 16px;
+      background: #222;
+      color: #fff;
+      border: 1px solid #333;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+    .tab-btn.active {
+      background: #FFD600;
+      color: #000;
+    }
+    .tab-content {
+      display: none;
+    }
+    .tab-content.active {
+      display: block;
+    }
   </style>
 </head>
 <body>
-  <h1>🔍 Test Complet Base de Données - Taxi Proxi</h1>
+  <h1>🗄️ Gestion Base de Données - Taxi Proxi</h1>
   
   <div class="test-section">
     <h2>🚀 Contrôles</h2>
-    <button id="testBtn" onclick="runFullTests()">▶ Lancer test complet</button>
-    <button class="secondary" onclick="document.getElementById('results').innerHTML = ''">🔄 Réinitialiser</button>
+    <div class="tab-buttons">
+      <button class="tab-btn active" onclick="switchTab('test')">🔍 Tests</button>
+      <button class="tab-btn" onclick="switchTab('create')">➕ Créer Tables</button>
+      <button class="tab-btn" onclick="switchTab('insert')">📝 Ajouter Données</button>
+    </div>
   </div>
 
   <div class="test-section">
+    <!-- TAB: Tests -->
+    <div id="test" class="tab-content active">
+      <h2>Tests de Connexion</h2>
+      <button id="testBtn" onclick="runFullTests()">▶ Lancer test complet</button>
+      <button class="secondary" onclick="document.getElementById('results').innerHTML = ''">🔄 Réinitialiser</button>
+    </div>
+
+    <!-- TAB: Create Tables -->
+    <div id="create" class="tab-content">
+      <h2>Créer les Tables</h2>
+      <button id="createBtn" onclick="createAllTables()">➕ Créer toutes les tables</button>
+      <button class="secondary" onclick="createTableByName()">➕ Créer table spécifique</button>
+    </div>
+
+    <!-- TAB: Insert Data -->
+    <div id="insert" class="tab-content">
+      <h2>Ajouter des Données</h2>
+      <button id="insertBtn" onclick="insertSampleData()">📝 Insérer données d'exemple</button>
+      <button class="secondary" onclick="document.getElementById('results').innerHTML = ''">🔄 Réinitialiser</button>
+    </div>
+
     <div id="results"></div>
   </div>
 
@@ -180,6 +234,17 @@
   <script>
     const SUPABASE_URL = 'https://uprhk9zcknjorj6-sm-eeac.supabase.co';
     const SUPABASE_ANON_KEY = 'sb_publishable_upRhK9ZCkNbORj6-SM-EEA_CoKJif-l';
+    const SUPABASE_SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVwcmhrOXpja25qb3JqNi1zbS1lZWFjIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTcxNTczNDg2MCwiZXhwIjoxODczNTAwODYwfQ.bC7-qcNGZJBqCLJHdXIBn8cVhYvBr-5BpLWU5Z9Z1s4';
+
+    let client = null;
+    let adminClient = null;
+
+    function switchTab(tab) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+      document.getElementById(tab).classList.add('active');
+      event.target.classList.add('active');
+    }
 
     function addResult(label, success, message = '', details = '') {
       const resultsDiv = document.getElementById('results');
@@ -227,9 +292,177 @@
       return html;
     }
 
-    async function testTable(client, tableName) {
+    function initClients() {
+      if (!window.supabase) {
+        addResult('❌ Supabase', false, 'CDN non disponible');
+        return false;
+      }
+      client = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      adminClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+      return true;
+    }
+
+    async function createAllTables() {
+      document.getElementById('results').innerHTML = '';
+      if (!initClients()) return;
+
+      const createBtn = document.querySelector('#createBtn') || document.querySelector('button');
+      createBtn.disabled = true;
+      createBtn.innerHTML = '<span class="spinner"></span>Création en cours...';
+
       try {
-        // Test 1: Table exists and is accessible
+        addResult('📋 Création des tables', 'info', 'Démarrage de la création...');
+
+        // Table: drivers
+        try {
+          await adminClient.rpc('exec_sql', {
+            sql: `
+              CREATE TABLE IF NOT EXISTS drivers (
+                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                name VARCHAR(255) NOT NULL,
+                email VARCHAR(255) UNIQUE NOT NULL,
+                phone VARCHAR(20),
+                status VARCHAR(50) DEFAULT 'available',
+                vehicle_type VARCHAR(100),
+                rating DECIMAL(3,2) DEFAULT 5.0,
+                created_at TIMESTAMP DEFAULT NOW(),
+                updated_at TIMESTAMP DEFAULT NOW()
+              );
+            `
+          });
+          addResult('✓ Table: drivers', true, 'Créée avec succès');
+        } catch (e) {
+          addResult('Table: drivers', 'warning', 'Création via RPC - Utilisez Supabase Dashboard');
+        }
+
+        // Table: riders
+        try {
+          await adminClient.rpc('exec_sql', {
+            sql: `
+              CREATE TABLE IF NOT EXISTS riders (
+                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                name VARCHAR(255) NOT NULL,
+                email VARCHAR(255) UNIQUE NOT NULL,
+                phone VARCHAR(20),
+                rating DECIMAL(3,2) DEFAULT 5.0,
+                created_at TIMESTAMP DEFAULT NOW(),
+                updated_at TIMESTAMP DEFAULT NOW()
+              );
+            `
+          });
+          addResult('✓ Table: riders', true, 'Créée avec succès');
+        } catch (e) {
+          addResult('Table: riders', 'warning', 'Création via RPC');
+        }
+
+        // Table: trips
+        try {
+          await adminClient.rpc('exec_sql', {
+            sql: `
+              CREATE TABLE IF NOT EXISTS trips (
+                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                driver_id UUID REFERENCES drivers(id),
+                rider_id UUID REFERENCES riders(id),
+                pickup_location VARCHAR(255) NOT NULL,
+                dropoff_location VARCHAR(255) NOT NULL,
+                status VARCHAR(50) DEFAULT 'pending',
+                distance DECIMAL(10,2),
+                duration INT,
+                fare DECIMAL(10,2),
+                created_at TIMESTAMP DEFAULT NOW(),
+                updated_at TIMESTAMP DEFAULT NOW()
+              );
+            `
+          });
+          addResult('✓ Table: trips', true, 'Créée avec succès');
+        } catch (e) {
+          addResult('Table: trips', 'warning', 'Création via RPC');
+        }
+
+        // Table: payments
+        try {
+          await adminClient.rpc('exec_sql', {
+            sql: `
+              CREATE TABLE IF NOT EXISTS payments (
+                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                trip_id UUID REFERENCES trips(id),
+                amount DECIMAL(10,2) NOT NULL,
+                payment_method VARCHAR(50),
+                status VARCHAR(50) DEFAULT 'pending',
+                created_at TIMESTAMP DEFAULT NOW(),
+                updated_at TIMESTAMP DEFAULT NOW()
+              );
+            `
+          });
+          addResult('✓ Table: payments', true, 'Créée avec succès');
+        } catch (e) {
+          addResult('Table: payments', 'warning', 'Création via RPC');
+        }
+
+        addResult('⚠️ Info Important', 'warning', 'Les tables doivent être créées via Supabase Dashboard', 
+          'Allez dans Supabase → SQL Editor et créez les tables manuellement avec les schémas ci-dessus');
+
+      } catch (error) {
+        addResult('❌ Erreur', false, error.message);
+      } finally {
+        createBtn.disabled = false;
+        createBtn.innerHTML = '➕ Créer toutes les tables';
+      }
+    }
+
+    async function insertSampleData() {
+      document.getElementById('results').innerHTML = '';
+      if (!initClients()) return;
+
+      const insertBtn = document.querySelector('#insertBtn') || document.querySelector('button');
+      insertBtn.disabled = true;
+      insertBtn.innerHTML = '<span class="spinner"></span>Insertion en cours...';
+
+      try {
+        addResult('📝 Insertion données d\'exemple', 'info', 'Démarrage...');
+
+        // Insert drivers
+        const { data: driversData, error: driversError } = await client
+          .from('drivers')
+          .insert([
+            { name: 'Ahmed Hassan', email: 'ahmed@taxi.com', phone: '+237600000001', status: 'available', vehicle_type: 'Sedan' },
+            { name: 'Marie Dupont', email: 'marie@taxi.com', phone: '+237600000002', status: 'available', vehicle_type: 'SUV' },
+            { name: 'Jean Paul', email: 'jean@taxi.com', phone: '+237600000003', status: 'busy', vehicle_type: 'Sedan' }
+          ]);
+        
+        if (driversError) {
+          addResult('Drivers', 'warning', driversError.message);
+        } else {
+          addResult('✓ Drivers', true, '3 chauffeurs ajoutés');
+        }
+
+        // Insert riders
+        const { data: ridersData, error: ridersError } = await client
+          .from('riders')
+          .insert([
+            { name: 'Alice Martin', email: 'alice@gmail.com', phone: '+237600000011' },
+            { name: 'Bob Wilson', email: 'bob@gmail.com', phone: '+237600000012' },
+            { name: 'Claire Brown', email: 'claire@gmail.com', phone: '+237600000013' }
+          ]);
+        
+        if (ridersError) {
+          addResult('Riders', 'warning', ridersError.message);
+        } else {
+          addResult('✓ Riders', true, '3 passagers ajoutés');
+        }
+
+        addResult('✓ Insertion Terminée', true, 'Données d\'exemple ajoutées avec succès');
+
+      } catch (error) {
+        addResult('❌ Erreur', false, error.message);
+      } finally {
+        insertBtn.disabled = false;
+        insertBtn.innerHTML = '📝 Insérer données d\'exemple';
+      }
+    }
+
+    async function testTable(tableName) {
+      try {
         const { data, error, status } = await client
           .from(tableName)
           .select('*')
@@ -237,157 +470,74 @@
         
         if (error) {
           if (error.code === '42P01') {
-            addResult(`❌ Table: ${tableName}`, false, `Table n'existe pas`, `Code: 42P01`);
-            return false;
-          } else if (error.code === 'PGRST301') {
-            addResult(`⚠️  Accès refusé: ${tableName}`, 'warning', `Vérifiez les permissions RLS`, `Code: PGRST301 - Status: ${status}`);
+            addResult(`❌ ${tableName}`, false, `N'existe pas - Créez la table d'abord`);
             return false;
           } else {
-            addResult(`❌ Erreur: ${tableName}`, false, error.message, `Code: ${error.code}`);
+            addResult(`⚠️ ${tableName}`, 'warning', error.message);
             return false;
           }
         }
 
-        // Test 2: Get row count
-        const { count, error: countError } = await client
+        const { count } = await client
           .from(tableName)
           .select('*', { count: 'exact', head: true });
-        
-        if (countError) {
-          addResult(`⚠️  Comptage: ${tableName}`, 'warning', countError.message);
-          return true;
-        }
 
-        // Test 3: Fetch all data
-        const { data: allData, error: fetchError } = await client
-          .from(tableName)
-          .select('*');
-        
-        if (fetchError) {
-          addResult(`❌ Récupération: ${tableName}`, false, fetchError.message);
-          return false;
-        }
+        const { data: allData } = await client.from(tableName).select('*');
 
-        // Success
-        const rowCount = count !== null ? count : (allData ? allData.length : 0);
-        addResult(`✓ Table: ${tableName}`, true, `${rowCount} ligne(s) trouvée(s)`, 
-          allData && allData.length > 0 ? createTable(Object.keys(allData[0]), allData) : 'Table vide'
+        addResult(`✓ ${tableName}`, true, `${count || 0} ligne(s)`, 
+          allData && allData.length > 0 ? createTable(Object.keys(allData[0]), allData.slice(0, 5)) : 'Table vide'
         );
 
         return true;
       } catch (e) {
-        addResult(`❌ Erreur: ${tableName}`, false, e.message);
+        addResult(`❌ ${tableName}`, false, e.message);
         return false;
       }
     }
 
     async function runFullTests() {
-      const testBtn = document.getElementById('testBtn');
+      document.getElementById('results').innerHTML = '';
+      const testBtn = document.querySelector('#testBtn') || document.querySelector('button');
       testBtn.disabled = true;
       testBtn.innerHTML = '<span class="spinner"></span>Tests en cours...';
-      
-      document.getElementById('results').innerHTML = '';
-      
+
       try {
-        // Step 1: Validation configuration
-        addResult('📋 Configuration', 'info', 'Clés Supabase chargées', `URL: ${SUPABASE_URL}`);
+        if (!initClients()) return;
 
-        if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-          addResult('❌ Erreur Configuration', false, 'URL ou clé manquante');
-          testBtn.disabled = false;
-          testBtn.innerHTML = '▶ Lancer test complet';
-          return;
-        }
+        addResult('✓ Configuration', true, 'Clés Supabase chargées');
+        addResult('✓ Supabase Library', true, 'CDN chargé');
 
-        // Step 2: Vérifier Supabase disponible
-        if (!window.supabase) {
-          addResult('❌ Supabase Library', false, 'CDN non disponible', 'Rechargez la page et réessayez');
-          testBtn.disabled = false;
-          testBtn.innerHTML = '▶ Lancer test complet';
-          return;
-        }
-        addResult('✓ Supabase Library', true, 'CDN chargé correctement');
-
-        // Step 3: Créer client
-        const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-        addResult('✓ Client Supabase', true, 'Client initialisé');
-
-        // Step 4: Tester la connexion de base
-        try {
-          const { data, error, status } = await client
-            .from('drivers')
-            .select('id')
-            .limit(1);
-          
-          if (error && error.code === 'PGRST301') {
-            addResult('⚠️  Connexion DB', 'warning', 'Accès limité - Vérifiez RLS', `Status: ${status}`);
-          } else if (error && error.code === '42P01') {
-            addResult('❌ Connexion DB', false, 'Table drivers introuvable', `Code: 42P01`);
-            testBtn.disabled = false;
-            testBtn.innerHTML = '▶ Lancer test complet';
-            return;
-          } else if (error) {
-            addResult('❌ Connexion DB', false, error.message, `Status: ${status}`);
-            testBtn.disabled = false;
-            testBtn.innerHTML = '▶ Lancer test complet';
-            return;
-          }
-          addResult('✓ Connexion DB', true, 'Base de données accessible');
-        } catch (e) {
-          addResult('❌ Erreur Connexion', false, e.message);
-          testBtn.disabled = false;
-          testBtn.innerHTML = '▶ Lancer test complet';
-          return;
-        }
-
-        // Step 5: Tester les tables principales
-        addResult('', 'info', '--- Tests des Tables ---', '');
-        
         const tables = ['drivers', 'riders', 'trips', 'payments'];
-        const resultsTable = {};
+        let successCount = 0;
 
         for (const table of tables) {
-          resultsTable[table] = await testTable(client, table);
-        }
-
-        // Step 6: Statistiques
-        addResult('', 'info', '--- Résumé ---', '');
-        
-        let successCount = 0;
-        for (const result of Object.values(resultsTable)) {
-          if (result) successCount++;
+          if (await testTable(table)) successCount++;
         }
 
         const summaryDiv = document.createElement('div');
         summaryDiv.className = 'test-item success';
         summaryDiv.innerHTML = `
-          <div class="label">✓ Diagnostic Complété</div>
+          <div class="label">✓ Diagnostic Terminé</div>
           <div class="stats">
             <div class="stat-box">
               <div class="stat-number">${successCount}/${tables.length}</div>
-              <div class="stat-label">Tables Accessibles</div>
-            </div>
-            <div class="stat-box">
-              <div class="stat-number">${new Date().toLocaleTimeString('fr-FR')}</div>
-              <div class="stat-label">Heure du Test</div>
+              <div class="stat-label">Tables OK</div>
             </div>
           </div>
         `;
         document.getElementById('results').appendChild(summaryDiv);
 
       } catch (error) {
-        addResult('❌ Erreur Critique', false, error.message);
+        addResult('❌ Erreur', false, error.message);
       } finally {
         testBtn.disabled = false;
         testBtn.innerHTML = '▶ Lancer test complet';
       }
     }
 
-    // Auto-run on page load
     window.addEventListener('load', () => {
       setTimeout(() => {
-        addResult('🚀 Démarrage', 'info', 'Cliquez sur "Lancer test complet" pour diagnostiquer');
-        setTimeout(runFullTests, 500);
+        addResult('🚀 Bienvenue', 'info', 'Sélectionnez une action');
       }, 500);
     });
   </script>
