@@ -15,19 +15,24 @@
       background: #0a0a0a;
       color: #f5f0e8;
       padding: 2rem;
-      max-width: 800px;
+      max-width: 900px;
       margin: 0 auto;
     }
     h1 {
       color: #FFD600;
       margin-bottom: 2rem;
     }
+    h2 {
+      color: #FFD600;
+      font-size: 1.1em;
+      margin-bottom: 1rem;
+    }
     .test-section {
       background: #111111;
       border: 1px solid #222222;
       border-radius: 8px;
       padding: 1.5rem;
-      margin-bottom: 1rem;
+      margin-bottom: 1.5rem;
     }
     .test-item {
       margin-bottom: 1rem;
@@ -48,9 +53,17 @@
       border-left-color: #40C4FF;
       color: #40C4FF;
     }
+    .test-item.warning {
+      border-left-color: #FFC400;
+      color: #FFC400;
+    }
     .label {
       font-weight: bold;
       margin-bottom: 0.5rem;
+    }
+    .message {
+      margin-top: 0.3rem;
+      font-size: 13px;
     }
     .value {
       word-break: break-all;
@@ -59,6 +72,15 @@
       background: #0a0a0a;
       padding: 0.5rem;
       border-radius: 4px;
+      overflow-x: auto;
+    }
+    .sub-item {
+      margin-left: 1.5rem;
+      margin-top: 0.5rem;
+      padding: 0.7rem;
+      background: #0a0a0a;
+      border-left: 2px solid #555;
+      border-radius: 3px;
     }
     button {
       background: #FFD600;
@@ -70,111 +92,235 @@
       cursor: pointer;
       margin-top: 1rem;
       font-family: 'Outfit', sans-serif;
+      transition: all 0.3s ease;
     }
     button:hover {
       background: #FFF176;
+      transform: scale(1.05);
+    }
+    button:disabled {
+      background: #888;
+      cursor: not-allowed;
+      opacity: 0.5;
+    }
+    .spinner {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      margin-right: 5px;
+      border: 2px solid #FFD600;
+      border-top-color: transparent;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    .section-title {
+      color: #FFD600;
+      font-size: 1.2em;
+      margin: 1.5rem 0 1rem 0;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid #333;
     }
   </style>
 </head>
 <body>
-  <h1>🔍 Diagnostic Connexion Supabase</h1>
+  <h1>🔍 Diagnostic Connexion Supabase - Taxi Proxi</h1>
   
   <div class="test-section">
-    <h2 style="color: #FFD600; margin-bottom: 1rem;">Tests de Connexion</h2>
+    <h2 style="color: #FFD600; margin-bottom: 1rem;">Tests de Connexion & Diagnostique</h2>
     <div id="results"></div>
-    <button onclick="runTests()">▶ Lancer les tests</button>
+    <button id="testBtn" onclick="runTests()">▶ Lancer les tests</button>
   </div>
 
   <script>
     const SUPABASE_URL = 'https://uprhk9zcknjorj6-sm-eeac.supabase.co';
     const SUPABASE_ANON_KEY = 'sb_publishable_upRhK9ZCkNbORj6-SM-EEA_CoKJif-l';
 
-    function addResult(label, success, message = '', value = '') {
+    function addResult(label, success, message = '', value = '', type = 'normal') {
       const resultsDiv = document.getElementById('results');
       const testItem = document.createElement('div');
-      testItem.className = `test-item ${success ? 'success' : (message.includes('ℹ') ? 'info' : 'error')}`;
       
-      let html = `<div class="label">${success ? '✓' : '✗'} ${label}</div>`;
-      if (message) html += `<div>${message}</div>`;
-      if (value) html += `<div class="value">${value}</div>`;
+      let className = 'test-item';
+      if (type === 'section') {
+        className += ' section-title';
+        testItem.style.marginTop = '1.5rem';
+        testItem.style.marginBottom = '0.5rem';
+      } else {
+        className += ` ${success ? 'success' : (message.includes('ℹ') ? 'info' : message.includes('⚠') ? 'warning' : 'error')}`;
+      }
+      testItem.className = className;
+      
+      let html = `<div class="label">${success ? '✓' : (message.includes('ℹ') ? 'ℹ' : message.includes('⚠') ? '⚠' : '✗')} ${label}</div>`;
+      if (message) html += `<div class="message">${message}</div>`;
+      if (value) html += `<div class="value"><strong>Détails:</strong> ${value}</div>`;
       
       testItem.innerHTML = html;
       resultsDiv.appendChild(testItem);
     }
 
+    async function loadSupabaseLibrary() {
+      return new Promise((resolve) => {
+        if (window.supabase) {
+          resolve(true);
+          return;
+        }
+        
+        const script = document.createElement('script');
+        script.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.48.0/dist/module.mjs';
+        script.type = 'module';
+        
+        script.onload = () => {
+          setTimeout(() => {
+            resolve(true);
+          }, 500);
+        };
+        
+        script.onerror = (e) => {
+          console.error('Erreur CDN:', e);
+          resolve(false);
+        };
+        
+        document.head.appendChild(script);
+      });
+    }
+
     async function runTests() {
+      const testBtn = document.getElementById('testBtn');
+      testBtn.disabled = true;
+      testBtn.innerHTML = '<span class="spinner"></span>Tests en cours...';
+      
       document.getElementById('results').innerHTML = '';
       
-      // Test 1: Configuration
-      addResult('Configuration', true, 'ℹ Clés Supabase trouvées', `URL: ${SUPABASE_URL}`);
-
-      // Test 2: Supabase library loaded
       try {
-        await new Promise(resolve => {
-          const script = document.createElement('script');
-          script.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
-          script.onload = resolve;
-          script.onerror = () => resolve('error');
-          document.head.appendChild(script);
-        });
+        // Test 1: Configuration
+        addResult('Configuration Supabase', true, 'ℹ Clés Supabase configurées', `URL: ${SUPABASE_URL}`);
         
-        setTimeout(async () => {
-          if (window.supabase) {
-            addResult('Supabase Library', true, 'CDN chargé avec succès');
-            
-            // Test 3: Client initialization
-            try {
-              const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-              addResult('Client Supabase', true, 'Client créé avec succès');
-              
-              // Test 4: Database connection
-              try {
-                const { data, error } = await client
-                  .from('drivers')
-                  .select('count')
-                  .limit(1);
-                
-                if (error) {
-                  addResult('Connexion DB', false, `Erreur: ${error.message}`);
-                } else {
-                  addResult('Connexion DB', true, 'Connexion réussie!', 'Base de données accessible');
-                  
-                  // Test 5: Fetch drivers
-                  try {
-                    const { data: drivers, error: driversError } = await client
-                      .from('drivers')
-                      .select('*');
-                    
-                    if (driversError) {
-                      addResult('Récupération Chauffeurs', false, `Erreur: ${driversError.message}`);
-                    } else {
-                      addResult('Récupération Chauffeurs', true, `✓ ${drivers?.length || 0} chauffeur(s) trouvé(s)`);
-                      drivers?.forEach((driver, i) => {
-                        addResult(`  Chauffeur ${i+1}`, true, `${driver.name} - ${driver.status}`, driver.email);
-                      });
-                    }
-                  } catch (e) {
-                    addResult('Récupération Chauffeurs', false, e.message);
-                  }
-                }
-              } catch (e) {
-                addResult('Connexion DB', false, e.message);
-              }
-            } catch (e) {
-              addResult('Client Supabase', false, e.message);
+        // Test 2: Validate configuration
+        if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+          addResult('Validation Config', false, 'URL ou clé manquante');
+          testBtn.disabled = false;
+          testBtn.innerHTML = '▶ Lancer les tests';
+          return;
+        }
+        addResult('Validation Config', true, 'ℹ Configuration valide');
+
+        // Test 3: Load Supabase library
+        addResult('', null, '', '', 'section');
+        addResult('📦 Chargement Bibliothèque', true, 'ℹ Chargement en cours...');
+        
+        const libLoaded = await loadSupabaseLibrary();
+        if (!libLoaded) {
+          addResult('Supabase Library', false, 'Erreur: CDN non accessible - Vérifiez votre connexion Internet');
+          testBtn.disabled = false;
+          testBtn.innerHTML = '▶ Lancer les tests';
+          return;
+        }
+
+        // Async import for proper module handling
+        const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.48.0/dist/module.mjs');
+
+        if (!createClient) {
+          addResult('Supabase Library', false, 'Erreur: Impossible de charger createClient');
+          testBtn.disabled = false;
+          testBtn.innerHTML = '▶ Lancer les tests';
+          return;
+        }
+
+        addResult('Supabase Library', true, 'CDN chargé avec succès');
+
+        // Test 4: Initialize client
+        addResult('', null, '', '', 'section');
+        addResult('🔗 Initialisation Client', true, 'ℹ Création en cours...');
+        
+        let client;
+        try {
+          client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+          addResult('Client Supabase', true, 'Client créé avec succès');
+        } catch (e) {
+          addResult('Client Supabase', false, `Erreur: ${e.message}`);
+          testBtn.disabled = false;
+          testBtn.innerHTML = '▶ Lancer les tests';
+          return;
+        }
+
+        // Test 5: Test connection with health check
+        addResult('', null, '', '', 'section');
+        addResult('🌐 Connexion Base de Données', true, 'ℹ Test en cours...');
+        
+        try {
+          // Try to query system tables to verify connection
+          const { data, error, status } = await client
+            .from('drivers')
+            .select('id')
+            .limit(1);
+          
+          if (error) {
+            if (error.code === '42P01') {
+              addResult('Connexion DB', false, `Erreur: Table 'drivers' n'existe pas`, `Code: ${error.code} - ${error.message}`);
+            } else if (error.code === 'PGRST301') {
+              addResult('Connexion DB', false, `⚠ Accès refusé à la table 'drivers'`, `Code: ${error.code} - Vérifiez les permissions RLS`);
+            } else {
+              addResult('Connexion DB', false, `Erreur: ${error.message}`, `Code: ${error.code} - Status: ${status}`);
             }
           } else {
-            addResult('Supabase Library', false, 'CDN non chargé - Vérifiez votre connexion Internet');
+            addResult('Connexion DB', true, 'Connexion réussie!', 'Base de données accessible');
+            
+            // Test 6: Fetch drivers data
+            addResult('', null, '', '', 'section');
+            addResult('👥 Récupération Données', true, 'ℹ Requête en cours...');
+            
+            try {
+              const { data: drivers, error: driversError, status: driversStatus } = await client
+                .from('drivers')
+                .select('*');
+              
+              if (driversError) {
+                if (driversError.code === 'PGRST301') {
+                  addResult('Récupération Chauffeurs', false, `⚠ Permission refusée`, `Vérifiez les règles RLS pour la table 'drivers'`);
+                } else {
+                  addResult('Récupération Chauffeurs', false, `Erreur: ${driversError.message}`, `Code: ${driversError.code}`);
+                }
+              } else {
+                const count = drivers?.length || 0;
+                if (count === 0) {
+                  addResult('Récupération Chauffeurs', true, `⚠ Aucun chauffeur trouvé (table vide)`);
+                } else {
+                  addResult('Récupération Chauffeurs', true, `✓ ${count} chauffeur(s) trouvé(s)`);
+                  drivers.forEach((driver, i) => {
+                    const driverInfo = `${driver.name || 'N/A'} - Status: ${driver.status || 'N/A'}`;
+                    const driverEmail = driver.email || 'N/A';
+                    addResult(`  📌 Chauffeur ${i + 1}`, true, driverInfo, driverEmail);
+                  });
+                }
+              }
+            } catch (e) {
+              addResult('Récupération Chauffeurs', false, `Erreur: ${e.message}`);
+            }
           }
-        }, 1000);
-      } catch (e) {
-        addResult('Supabase Library', false, 'Erreur de chargement CDN', e.message);
+        } catch (e) {
+          addResult('Connexion DB', false, `Erreur critique: ${e.message}`, e.stack);
+        }
+
+        // Test 7: Summary
+        addResult('', null, '', '', 'section');
+        addResult('✅ Diagnostic Terminé', true, 'ℹ Tous les tests ont été exécutés');
+
+      } catch (error) {
+        addResult('Erreur Générale', false, `${error.message}`, error.stack);
+      } finally {
+        testBtn.disabled = false;
+        testBtn.innerHTML = '▶ Lancer les tests';
       }
     }
 
     // Auto-run on page load
     window.addEventListener('load', () => {
-      setTimeout(runTests, 500);
+      setTimeout(() => {
+        addResult('🚀 Démarrage du diagnostic', true, 'ℹ Cliquez sur "Lancer les tests" ou attendez...');
+        setTimeout(runTests, 1000);
+      }, 500);
     });
   </script>
 </body>
