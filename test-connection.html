@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Diagnostic Connexion Supabase - Taxi Proxi</title>
+  <title>Test Base de Données - Taxi Proxi</title>
   <style>
     * {
       margin: 0;
@@ -15,17 +15,20 @@
       background: #0a0a0a;
       color: #f5f0e8;
       padding: 2rem;
-      max-width: 900px;
+      max-width: 1000px;
       margin: 0 auto;
     }
     h1 {
       color: #FFD600;
-      margin-bottom: 2rem;
+      margin-bottom: 1rem;
     }
     h2 {
       color: #FFD600;
       font-size: 1.1em;
+      margin-top: 1.5rem;
       margin-bottom: 1rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 2px solid #333;
     }
     .test-section {
       background: #111111;
@@ -74,6 +77,26 @@
       border-radius: 4px;
       overflow-x: auto;
     }
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 0.5rem;
+      font-size: 12px;
+    }
+    .data-table th {
+      background: #222;
+      color: #FFD600;
+      padding: 0.5rem;
+      text-align: left;
+      border-bottom: 1px solid #444;
+    }
+    .data-table td {
+      padding: 0.5rem;
+      border-bottom: 1px solid #222;
+    }
+    .data-table tr:hover {
+      background: #222;
+    }
     button {
       background: #FFD600;
       color: #000;
@@ -82,7 +105,7 @@
       border-radius: 8px;
       font-weight: bold;
       cursor: pointer;
-      margin-top: 1rem;
+      margin: 0.5rem 0.5rem 0.5rem 0;
       font-family: 'Outfit', sans-serif;
       transition: all 0.3s ease;
     }
@@ -94,6 +117,13 @@
       background: #888;
       cursor: not-allowed;
       opacity: 0.5;
+    }
+    button.secondary {
+      background: #40C4FF;
+      color: #000;
+    }
+    button.secondary:hover {
+      background: #69D9FF;
     }
     .spinner {
       display: inline-block;
@@ -108,22 +138,42 @@
     @keyframes spin {
       to { transform: rotate(360deg); }
     }
-    .section-title {
-      color: #FFD600;
-      font-size: 1.2em;
-      margin: 1.5rem 0 1rem 0;
-      padding-bottom: 0.5rem;
-      border-bottom: 1px solid #333;
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+    .stat-box {
+      background: #1a1a1a;
+      border: 1px solid #333;
+      padding: 1rem;
+      border-radius: 8px;
+      text-align: center;
+    }
+    .stat-number {
+      font-size: 2em;
+      color: #00E676;
+      font-weight: bold;
+    }
+    .stat-label {
+      font-size: 12px;
+      color: #888;
+      margin-top: 0.5rem;
     }
   </style>
 </head>
 <body>
-  <h1>🔍 Diagnostic Connexion Supabase - Taxi Proxi</h1>
+  <h1>🔍 Test Complet Base de Données - Taxi Proxi</h1>
   
   <div class="test-section">
-    <h2 style="color: #FFD600; margin-bottom: 1rem;">Tests de Connexion & Diagnostique</h2>
+    <h2>🚀 Contrôles</h2>
+    <button id="testBtn" onclick="runFullTests()">▶ Lancer test complet</button>
+    <button class="secondary" onclick="document.getElementById('results').innerHTML = ''">🔄 Réinitialiser</button>
+  </div>
+
+  <div class="test-section">
     <div id="results"></div>
-    <button id="testBtn" onclick="runTests()">▶ Lancer les tests</button>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.48.0"></script>
@@ -131,38 +181,107 @@
     const SUPABASE_URL = 'https://uprhk9zcknjorj6-sm-eeac.supabase.co';
     const SUPABASE_ANON_KEY = 'sb_publishable_upRhK9ZCkNbORj6-SM-EEA_CoKJif-l';
 
-    function addResult(label, success, message = '', value = '', type = 'normal') {
+    function addResult(label, success, message = '', details = '') {
       const resultsDiv = document.getElementById('results');
       const testItem = document.createElement('div');
       
-      let className = 'test-item';
-      if (type === 'section') {
-        className += ' section-title';
-        testItem.style.marginTop = '1.5rem';
-        testItem.style.marginBottom = '0.5rem';
-      } else {
-        let statusClass = 'error';
-        if (success) statusClass = 'success';
-        else if (message.includes('ℹ')) statusClass = 'info';
-        else if (message.includes('⚠')) statusClass = 'warning';
-        className += ` ${statusClass}`;
-      }
-      testItem.className = className;
-      
+      let statusClass = 'error';
       let icon = '✗';
-      if (success) icon = '✓';
-      else if (message.includes('ℹ')) icon = 'ℹ';
-      else if (message.includes('⚠')) icon = '⚠';
+      
+      if (success === true) {
+        statusClass = 'success';
+        icon = '✓';
+      } else if (success === 'warning') {
+        statusClass = 'warning';
+        icon = '⚠';
+      } else if (success === 'info') {
+        statusClass = 'info';
+        icon = 'ℹ';
+      }
+      
+      testItem.className = `test-item ${statusClass}`;
       
       let html = `<div class="label">${icon} ${label}</div>`;
       if (message) html += `<div class="message">${message}</div>`;
-      if (value) html += `<div class="value"><strong>Détails:</strong> ${value}</div>`;
+      if (details) html += `<div class="value">${details}</div>`;
       
       testItem.innerHTML = html;
       resultsDiv.appendChild(testItem);
     }
 
-    async function runTests() {
+    function createTable(columns, data) {
+      let html = '<table class="data-table"><thead><tr>';
+      columns.forEach(col => {
+        html += `<th>${col}</th>`;
+      });
+      html += '</tr></thead><tbody>';
+      
+      data.forEach(row => {
+        html += '<tr>';
+        columns.forEach(col => {
+          html += `<td>${row[col] !== null && row[col] !== undefined ? row[col] : 'N/A'}</td>`;
+        });
+        html += '</tr>';
+      });
+      html += '</tbody></table>';
+      return html;
+    }
+
+    async function testTable(client, tableName) {
+      try {
+        // Test 1: Table exists and is accessible
+        const { data, error, status } = await client
+          .from(tableName)
+          .select('*')
+          .limit(1);
+        
+        if (error) {
+          if (error.code === '42P01') {
+            addResult(`❌ Table: ${tableName}`, false, `Table n'existe pas`, `Code: 42P01`);
+            return false;
+          } else if (error.code === 'PGRST301') {
+            addResult(`⚠️  Accès refusé: ${tableName}`, 'warning', `Vérifiez les permissions RLS`, `Code: PGRST301 - Status: ${status}`);
+            return false;
+          } else {
+            addResult(`❌ Erreur: ${tableName}`, false, error.message, `Code: ${error.code}`);
+            return false;
+          }
+        }
+
+        // Test 2: Get row count
+        const { count, error: countError } = await client
+          .from(tableName)
+          .select('*', { count: 'exact', head: true });
+        
+        if (countError) {
+          addResult(`⚠️  Comptage: ${tableName}`, 'warning', countError.message);
+          return true;
+        }
+
+        // Test 3: Fetch all data
+        const { data: allData, error: fetchError } = await client
+          .from(tableName)
+          .select('*');
+        
+        if (fetchError) {
+          addResult(`❌ Récupération: ${tableName}`, false, fetchError.message);
+          return false;
+        }
+
+        // Success
+        const rowCount = count !== null ? count : (allData ? allData.length : 0);
+        addResult(`✓ Table: ${tableName}`, true, `${rowCount} ligne(s) trouvée(s)`, 
+          allData && allData.length > 0 ? createTable(Object.keys(allData[0]), allData) : 'Table vide'
+        );
+
+        return true;
+      } catch (e) {
+        addResult(`❌ Erreur: ${tableName}`, false, e.message);
+        return false;
+      }
+    }
+
+    async function runFullTests() {
       const testBtn = document.getElementById('testBtn');
       testBtn.disabled = true;
       testBtn.innerHTML = '<span class="spinner"></span>Tests en cours...';
@@ -170,113 +289,106 @@
       document.getElementById('results').innerHTML = '';
       
       try {
-        // Test 1: Configuration
-        addResult('Configuration Supabase', true, 'ℹ Clés Supabase configurées', `URL: ${SUPABASE_URL}`);
-        
-        // Test 2: Validate configuration
+        // Step 1: Validation configuration
+        addResult('📋 Configuration', 'info', 'Clés Supabase chargées', `URL: ${SUPABASE_URL}`);
+
         if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-          addResult('Validation Config', false, 'URL ou clé manquante');
+          addResult('❌ Erreur Configuration', false, 'URL ou clé manquante');
           testBtn.disabled = false;
-          testBtn.innerHTML = '▶ Lancer les tests';
+          testBtn.innerHTML = '▶ Lancer test complet';
           return;
         }
-        addResult('Validation Config', true, 'ℹ Configuration valide');
 
-        // Test 3: Load Supabase library
-        addResult('', null, '', '', 'section');
-        
+        // Step 2: Vérifier Supabase disponible
         if (!window.supabase) {
-          addResult('Supabase Library', false, 'Erreur: CDN non chargé');
+          addResult('❌ Supabase Library', false, 'CDN non disponible', 'Rechargez la page et réessayez');
           testBtn.disabled = false;
-          testBtn.innerHTML = '▶ Lancer les tests';
+          testBtn.innerHTML = '▶ Lancer test complet';
           return;
         }
-        addResult('Supabase Library', true, 'CDN chargé avec succès');
+        addResult('✓ Supabase Library', true, 'CDN chargé correctement');
 
-        // Test 4: Initialize client
-        addResult('', null, '', '', 'section');
-        
-        let client;
-        try {
-          client = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-          addResult('Client Supabase', true, 'Client créé avec succès');
-        } catch (e) {
-          addResult('Client Supabase', false, `Erreur: ${e.message}`);
-          testBtn.disabled = false;
-          testBtn.innerHTML = '▶ Lancer les tests';
-          return;
-        }
+        // Step 3: Créer client
+        const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        addResult('✓ Client Supabase', true, 'Client initialisé');
 
-        // Test 5: Test connection
-        addResult('', null, '', '', 'section');
-        
+        // Step 4: Tester la connexion de base
         try {
           const { data, error, status } = await client
             .from('drivers')
             .select('id')
             .limit(1);
           
-          if (error) {
-            if (error.code === '42P01') {
-              addResult('Connexion DB', false, `Erreur: Table 'drivers' n'existe pas`, `Code: ${error.code}`);
-            } else if (error.code === 'PGRST301') {
-              addResult('Connexion DB', false, `⚠ Accès refusé`, `Code: ${error.code} - Vérifiez les permissions RLS`);
-            } else {
-              addResult('Connexion DB', false, `Erreur: ${error.message}`, `Code: ${error.code}`);
-            }
-          } else {
-            addResult('Connexion DB', true, 'Connexion réussie!', 'Base de données accessible');
-            
-            // Test 6: Fetch drivers
-            addResult('', null, '', '', 'section');
-            
-            try {
-              const { data: drivers, error: driversError } = await client
-                .from('drivers')
-                .select('*');
-              
-              if (driversError) {
-                if (driversError.code === 'PGRST301') {
-                  addResult('Récupération Chauffeurs', false, `⚠ Permission refusée`, `Vérifiez les règles RLS`);
-                } else {
-                  addResult('Récupération Chauffeurs', false, `Erreur: ${driversError.message}`, `Code: ${driversError.code}`);
-                }
-              } else {
-                const count = drivers?.length || 0;
-                if (count === 0) {
-                  addResult('Récupération Chauffeurs', true, `⚠ Aucun chauffeur trouvé`);
-                } else {
-                  addResult('Récupération Chauffeurs', true, `✓ ${count} chauffeur(s) trouvé(s)`);
-                  drivers.forEach((driver, i) => {
-                    const driverInfo = `${driver.name || 'N/A'} - Status: ${driver.status || 'N/A'}`;
-                    const driverEmail = driver.email || 'N/A';
-                    addResult(`  📌 Chauffeur ${i + 1}`, true, driverInfo, driverEmail);
-                  });
-                }
-              }
-            } catch (e) {
-              addResult('Récupération Chauffeurs', false, `Erreur: ${e.message}`);
-            }
+          if (error && error.code === 'PGRST301') {
+            addResult('⚠️  Connexion DB', 'warning', 'Accès limité - Vérifiez RLS', `Status: ${status}`);
+          } else if (error && error.code === '42P01') {
+            addResult('❌ Connexion DB', false, 'Table drivers introuvable', `Code: 42P01`);
+            testBtn.disabled = false;
+            testBtn.innerHTML = '▶ Lancer test complet';
+            return;
+          } else if (error) {
+            addResult('❌ Connexion DB', false, error.message, `Status: ${status}`);
+            testBtn.disabled = false;
+            testBtn.innerHTML = '▶ Lancer test complet';
+            return;
           }
+          addResult('✓ Connexion DB', true, 'Base de données accessible');
         } catch (e) {
-          addResult('Connexion DB', false, `Erreur: ${e.message}`);
+          addResult('❌ Erreur Connexion', false, e.message);
+          testBtn.disabled = false;
+          testBtn.innerHTML = '▶ Lancer test complet';
+          return;
         }
 
-        // Test 7: Summary
-        addResult('', null, '', '', 'section');
-        addResult('✅ Diagnostic Terminé', true, 'ℹ Tests complétés');
+        // Step 5: Tester les tables principales
+        addResult('', 'info', '--- Tests des Tables ---', '');
+        
+        const tables = ['drivers', 'riders', 'trips', 'payments'];
+        const resultsTable = {};
+
+        for (const table of tables) {
+          resultsTable[table] = await testTable(client, table);
+        }
+
+        // Step 6: Statistiques
+        addResult('', 'info', '--- Résumé ---', '');
+        
+        let successCount = 0;
+        for (const result of Object.values(resultsTable)) {
+          if (result) successCount++;
+        }
+
+        const summaryDiv = document.createElement('div');
+        summaryDiv.className = 'test-item success';
+        summaryDiv.innerHTML = `
+          <div class="label">✓ Diagnostic Complété</div>
+          <div class="stats">
+            <div class="stat-box">
+              <div class="stat-number">${successCount}/${tables.length}</div>
+              <div class="stat-label">Tables Accessibles</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-number">${new Date().toLocaleTimeString('fr-FR')}</div>
+              <div class="stat-label">Heure du Test</div>
+            </div>
+          </div>
+        `;
+        document.getElementById('results').appendChild(summaryDiv);
 
       } catch (error) {
-        addResult('Erreur Générale', false, `${error.message}`);
+        addResult('❌ Erreur Critique', false, error.message);
       } finally {
         testBtn.disabled = false;
-        testBtn.innerHTML = '▶ Lancer les tests';
+        testBtn.innerHTML = '▶ Lancer test complet';
       }
     }
 
     // Auto-run on page load
     window.addEventListener('load', () => {
-      setTimeout(runTests, 1000);
+      setTimeout(() => {
+        addResult('🚀 Démarrage', 'info', 'Cliquez sur "Lancer test complet" pour diagnostiquer');
+        setTimeout(runFullTests, 500);
+      }, 500);
     });
   </script>
 </body>
