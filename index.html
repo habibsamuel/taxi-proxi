@@ -7,6 +7,10 @@
   <link rel="preconnect" href="https://fonts.googleapis.com/">
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
   
+  <!-- LEAFLET MAP -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+  
   <!-- SUPABASE CLIENT -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabaseClient.js"></script>
@@ -28,123 +32,97 @@
   --orange:  #FF9100;
   --blue:    #40C4FF;
 }
+
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%;overflow:hidden}
 body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;font-size:15px;line-height:1.5}
 
-/* SPLASH */
 #splash{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1rem;animation:splashOut 0.5s 2s forwards}
 @keyframes splashOut{to{opacity:0;pointer-events:none}}
 .splash-icon{font-size:64px;animation:bounce 1s ease infinite alternate}
 @keyframes bounce{from{transform:translateY(0)}to{transform:translateY(-12px)}}
-.splash-title{font-family:'Syne',sans-serif;font-size:32px;font-weight:800;color:var(--yellow);letter-spacing:-0.02em}
-.splash-sub{color:var(--text2);font-size:14px}
+.splash-title{font-family:'Syne',sans-serif;font-size:32px;font-weight:800;color:var(--yellow)}
 .splash-bar{width:160px;height:3px;background:var(--border);border-radius:2px;overflow:hidden;margin-top:1rem}
-.splash-fill{height:100%;background:var(--yellow);border-radius:2px;animation:load 1.8s ease forwards}
+.splash-fill{height:100%;background:var(--yellow);animation:load 1.8s ease forwards}
 @keyframes load{from{width:0}to{width:100%}}
 
-/* APP */
 #app{height:100%;display:flex;flex-direction:column;max-width:480px;margin:0 auto;position:relative}
-
-/* HEADER */
-.app-header{padding:1rem 1.25rem 0.75rem;border-bottom:1px solid var(--border);background:var(--bg);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.app-header{padding:1rem 1.25rem 0.75rem;border-bottom:1px solid var(--border);background:var(--bg);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;z-index:100}
 .app-logo{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:var(--yellow);display:flex;align-items:center;gap:8px}
-.app-logo span{color:var(--text);font-weight:400;font-size:14px}
 .header-right{display:flex;align-items:center;gap:10px}
 .user-badge{background:var(--bg3);border:1px solid var(--border2);border-radius:100px;padding:5px 12px;font-size:12px;color:var(--text2);cursor:pointer;transition:all .2s}
 .user-badge.logged{border-color:var(--yellow);color:var(--yellow)}
-.user-badge:hover{border-color:var(--text2)}
+.pro-badge{background:linear-gradient(135deg,var(--orange),var(--yellow));color:#000;font-weight:600;border:none!important}
+.blocked-badge{background:var(--red);color:#fff;font-weight:600;border:none!important}
 
-/* CONTENT */
 .app-content{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
-
-/* BOTTOM NAV */
-.bottom-nav{display:flex;border-top:1px solid var(--border);background:var(--bg);flex-shrink:0}
-.nav-btn{flex:1;padding:10px 4px 12px;display:flex;flex-direction:column;align-items:center;gap:3px;background:none;border:none;color:var(--text3);cursor:pointer;transition:color .2s;font-family:'Outfit',sans-serif}
-.nav-btn .nav-icon{font-size:20px}
-.nav-btn .nav-label{font-size:10px;letter-spacing:0.05em}
+.bottom-nav{display:flex;border-top:1px solid var(--border);background:var(--bg);flex-shrink:0;z-index:100}
+.nav-btn{flex:1;padding:10px 4px 12px;display:flex;flex-direction:column;align-items:center;gap:3px;background:none;border:none;color:var(--text3);cursor:pointer;transition:color .2s}
 .nav-btn.active{color:var(--yellow)}
-.nav-btn.active .nav-icon{filter:drop-shadow(0 0 6px rgba(255,214,0,0.6))}
 
-/* TABS */
 .tab{display:none;padding:1.25rem}
 .tab.active{display:block}
 
-/* STATS BAND */
 .stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:1.25rem}
 .stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center}
 .stat-num{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:var(--yellow)}
-.stat-lbl{font-size:10px;color:var(--text2);margin-top:2px;letter-spacing:0.04em}
+.stat-lbl{font-size:10px;color:var(--text2);margin-top:2px}
 
-/* SEARCH */
+#mapContainer{width:100%;height:300px;margin-bottom:15px;border-radius:10px;overflow:hidden;border:1px solid var(--border)}
+
 .search-bar{position:relative;margin-bottom:10px}
-.search-bar input{width:100%;padding:12px 16px 12px 42px;background:var(--bg2);border:1px solid var(--border2);border-radius:10px;color:var(--text);font-family:'Outfit',sans-serif;font-size:14px;outline:none;transition:border-color .2s}
+.search-bar input{width:100%;padding:12px 16px 12px 42px;background:var(--bg2);border:1px solid var(--border2);border-radius:10px;color:var(--text);font-size:14px;outline:none}
 .search-bar input:focus{border-color:var(--yellow)}
-.search-bar input::placeholder{color:var(--text3)}
-.search-icon{position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:16px;pointer-events:none}
+.search-icon{position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:16px}
 
-/* TRAJET CARD */
-.trajet-card{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:1rem;margin-bottom:10px;transition:border-color .2s}
-.trajet-card:hover{border-color:var(--border2)}
+.trajet-card{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:1rem;margin-bottom:10px}
 .trajet-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
-.trajet-driver{display:flex;align-items:center;gap:10px}
-.driver-avatar{width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,var(--yellow),var(--orange));display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;color:#000}
-.driver-name{font-weight:600;font-size:14px}
-.driver-car{font-size:11px;color:var(--text2);margin-top:1px}
-.trajet-badge{padding:4px 10px;border-radius:100px;font-size:11px;font-weight:600}
-.badge-green{background:rgba(0,230,118,0.15);color:var(--green);border:1px solid rgba(0,230,118,0.3)}
-.badge-red{background:rgba(255,82,82,0.15);color:var(--red);border:1px solid rgba(255,82,82,0.3)}
+.driver-avatar{width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,var(--yellow),var(--orange));display:flex;align-items:center;justify-content:center;font-weight:700}
 .trajet-meta{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
 .meta-chip{display:flex;align-items:center;gap:4px;font-size:11px;color:var(--text2);background:var(--bg3);padding:4px 8px;border-radius:6px}
-.meta-chip span{font-size:13px}
 .trajet-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.btn-wa{background:linear-gradient(135deg,#25D366,#128C7E);color:#fff;border:none;border-radius:8px;padding:10px;font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:opacity .2s}
-.btn-wa:hover{opacity:0.88}
-.btn-call{background:var(--bg3);border:1px solid var(--border2);color:var(--text);border-radius:8px;padding:10px;font-family:'Outfit',sans-serif;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:border-color .2s}
-.btn-call:hover{border-color:var(--blue);color:var(--blue)}
+.btn-wa{background:linear-gradient(135deg,#25D366,#128C7E);color:#fff;border:none;border-radius:8px;padding:10px;font-size:13px;font-weight:600;cursor:pointer}
+.btn-call{background:var(--bg3);border:1px solid var(--border2);color:var(--text);border-radius:8px;padding:10px;cursor:pointer}
 
-/* EMPTY STATE */
 .empty{text-align:center;padding:3rem 1rem;color:var(--text2)}
 .empty-icon{font-size:48px;margin-bottom:1rem;opacity:.5}
-.empty p{font-size:13px;line-height:1.7}
 
-/* FORM */
 .form-section{margin-bottom:1.5rem}
-.form-label{font-size:12px;color:var(--text2);letter-spacing:0.06em;text-transform:uppercase;margin-bottom:8px;display:block}
-.form-input{width:100%;padding:13px 16px;background:var(--bg2);border:1px solid var(--border2);border-radius:10px;color:var(--text);font-family:'Outfit',sans-serif;font-size:15px;outline:none;transition:border-color .2s}
+.form-label{font-size:12px;color:var(--text2);text-transform:uppercase;margin-bottom:8px;display:block}
+.form-input{width:100%;padding:13px 16px;background:var(--bg2);border:1px solid var(--border2);border-radius:10px;color:var(--text);font-size:15px;outline:none}
 .form-input:focus{border-color:var(--yellow)}
-.form-input::placeholder{color:var(--text3)}
-.btn-submit{width:100%;padding:15px;background:var(--yellow);color:#000;font-family:'Syne',sans-serif;font-size:16px;font-weight:700;border:none;border-radius:12px;cursor:pointer;transition:all .2s}
-.btn-submit:hover{background:var(--yellow2);transform:translateY(-1px)}
+.btn-submit{width:100%;padding:15px;background:var(--yellow);color:#000;font-family:'Syne',sans-serif;font-size:16px;font-weight:700;border:none;border-radius:12px;cursor:pointer}
+.btn-submit:hover{background:var(--yellow2)}
+.btn-submit:disabled{opacity:0.5;cursor:not-allowed}
+.btn-danger{background:var(--red)}
 
-/* TOAST */
-#toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--bg3);border:1px solid var(--border2);border-radius:100px;padding:10px 20px;font-size:13px;opacity:0;transition:all .2s;z-index:100}
-#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
-#toast.success{border-color:var(--green);color:var(--green)}
-#toast.error{border-color:var(--red);color:var(--red)}
-#toast.info{border-color:var(--yellow);color:var(--yellow)}
-
-/* LOADING */
 .loading-spinner{display:inline-block;width:20px;height:20px;border:3px solid var(--border2);border-top-color:var(--yellow);border-radius:50%;animation:spin 1s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 
-/* DIVIDER */
-.divider{height:1px;background:var(--border);margin:1.25rem 0}
+#toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--bg3);border:1px solid var(--border2);border-radius:100px;padding:10px 20px;font-size:13px;opacity:0;transition:all .3s;pointer-events:none;z-index:1000}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+#toast.success{border-color:var(--green);color:var(--green)}
+#toast.error{border-color:var(--red);color:var(--red)}
+
+.modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:2000;align-items:center;justify-content:center}
+.modal.active{display:flex}
+.modal-content{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:2rem;width:90%;max-width:400px;max-height:90vh;overflow-y:auto}
+.modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem}
+.modal-close{background:none;border:none;color:var(--text2);font-size:24px;cursor:pointer}
+
+.pro-section{background:linear-gradient(135deg,rgba(255,145,0,0.1),rgba(255,214,0,0.1));border:1px solid rgba(255,145,0,0.3);border-radius:12px;padding:1rem;margin-bottom:1rem}
+.warning-section{background:linear-gradient(135deg,rgba(255,82,82,0.1),rgba(255,82,82,0.1));border:1px solid rgba(255,82,82,0.3);border-radius:12px;padding:1rem;margin-bottom:1rem}
   </style>
 </head>
 <body>
 
-<!-- SPLASH -->
 <div id="splash">
   <div class="splash-icon">🚕</div>
   <div class="splash-title">Taxi Proxi</div>
-  <div class="splash-sub">Covoiturage urbain Cameroun</div>
   <div class="splash-bar"><div class="splash-fill"></div></div>
 </div>
 
-<!-- APP -->
 <div id="app">
-  <!-- Header -->
   <div class="app-header">
     <div class="app-logo">🚕 <span>Taxi Proxi</span></div>
     <div class="header-right">
@@ -152,32 +130,29 @@ body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;font
     </div>
   </div>
 
-  <!-- Content -->
   <div class="app-content">
 
-    <!-- TAB TROUVER (HOME) -->
     <div class="tab active" id="tab-find">
       <div class="stats-row">
         <div class="stat-card"><div class="stat-num" id="statTrajets">0</div><div class="stat-lbl">Chauffeurs</div></div>
         <div class="stat-card"><div class="stat-num" id="statOnline">0</div><div class="stat-lbl">En ligne</div></div>
-        <div class="stat-card"><div class="stat-num" id="statOffline">0</div><div class="stat-lbl">Hors ligne</div></div>
+        <div class="stat-card"><div class="stat-num" id="statDistance">0km</div><div class="stat-lbl">Plus proche</div></div>
+      </div>
+
+      <div id="mapContainer"><div id="map"></div></div>
+
+      <div class="search-bar">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="searchInput" placeholder="Chercher un chauffeur...">
       </div>
 
       <div id="trajetsList" style="min-height: 200px;">
-        <div class="empty">
-          <div class="loading-spinner"></div>
-          <p>Chargement des chauffeurs...</p>
-        </div>
+        <div class="empty"><div class="loading-spinner"></div><p>Chargement...</p></div>
       </div>
     </div>
 
-    <!-- TAB AJOUTER CHAUFFEUR -->
     <div class="tab" id="tab-offer">
-      <div class="section-head" style="margin-bottom:1rem">
-        <h2 style="font-family:'Syne',sans-serif;font-size:20px;font-weight:800;margin-bottom:4px">Ajouter un chauffeur</h2>
-        <p style="font-size:13px;color:var(--text2)">Enregistrez un nouveau chauffeur dans la base de données</p>
-      </div>
-
+      <h2 style="font-family:'Syne',sans-serif;font-size:20px;font-weight:800;margin-bottom:1rem">Ajouter un chauffeur</h2>
       <div class="form-section">
         <label class="form-label">Nom complet</label>
         <input class="form-input" id="driverName" placeholder="Ex: Jean-Paul M.">
@@ -191,69 +166,283 @@ body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;font
         <input class="form-input" id="driverPhone" placeholder="Ex: 694000001">
       </div>
       <div class="form-section">
-        <label class="form-label">Plaque immatriculation</label>
+        <label class="form-label">Plaque</label>
         <input class="form-input" id="driverPlate" placeholder="Ex: CM-001-ABC">
       </div>
       <div class="form-section">
-        <label class="form-label">Type de véhicule</label>
+        <label class="form-label">Véhicule</label>
         <select class="form-input" id="driverType" style="cursor:pointer">
           <option>Sedan</option>
           <option>SUV</option>
           <option>Minibus</option>
-          <option>Berline</option>
         </select>
       </div>
-      <div class="form-section">
-        <label class="form-label">Statut</label>
-        <select class="form-input" id="driverStatus" style="cursor:pointer">
-          <option>offline</option>
-          <option>online</option>
-          <option>busy</option>
-        </select>
-      </div>
-      <button class="btn-submit" onclick="registerDriver()" id="btnRegister">🚕 Enregistrer le chauffeur</button>
+      <button class="btn-submit" onclick="registerDriver()" id="btnRegister">🚕 Enregistrer</button>
     </div>
 
-    <!-- TAB COMPTE -->
     <div class="tab" id="tab-account">
-      <div class="empty" style="padding:3rem 1rem">
-        <div class="empty-icon">👤</div>
-        <p>Connectez-vous pour voir votre profil</p>
+      <div id="accountContent">
+        <div class="empty"><div class="empty-icon">👤</div><p>Connectez-vous pour voir votre profil</p></div>
       </div>
     </div>
 
   </div>
 
-  <!-- Bottom Nav -->
   <div class="bottom-nav">
-    <button class="nav-btn active" onclick="switchTab('find',this)">
-      <span class="nav-icon">🏠</span>
-      <span class="nav-label">Accueil</span>
-    </button>
-    <button class="nav-btn" onclick="switchTab('offer',this)">
-      <span class="nav-icon">➕</span>
-      <span class="nav-label">Ajouter</span>
-    </button>
-    <button class="nav-btn" onclick="switchTab('account',this)">
-      <span class="nav-icon">👤</span>
-      <span class="nav-label">Compte</span>
-    </button>
+    <button class="nav-btn active" onclick="switchTab('find',this)"><span style="font-size:20px">🏠</span><span style="font-size:10px">Accueil</span></button>
+    <button class="nav-btn" onclick="switchTab('offer',this)"><span style="font-size:20px">➕</span><span style="font-size:10px">Ajouter</span></button>
+    <button class="nav-btn" onclick="switchTab('account',this)"><span style="font-size:20px">👤</span><span style="font-size:10px">Compte</span></button>
   </div>
 </div>
 
-<!-- Toast -->
+<div class="modal" id="authModal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2>Connexion</h2>
+      <button class="modal-close" onclick="closeModal('authModal')">✕</button>
+    </div>
+    <div class="form-section">
+      <label class="form-label">Email</label>
+      <input class="form-input" id="authEmail" type="email" placeholder="votre@email.cm">
+    </div>
+    <div class="form-section">
+      <label class="form-label">Mot de passe</label>
+      <input class="form-input" id="authPassword" type="password" placeholder="••••••••">
+    </div>
+    <div class="form-section">
+      <label style="display:flex;gap:8px">
+        <input type="checkbox" id="isPro">
+        <span>Je suis un chauffeur PRO</span>
+      </label>
+    </div>
+    <button class="btn-submit" onclick="authenticate()">Se connecter</button>
+  </div>
+</div>
+
+<div class="modal" id="paymentModal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2>Paiement PRO</h2>
+      <button class="modal-close" onclick="closeModal('paymentModal')">✕</button>
+    </div>
+    <p style="color:var(--text2);margin-bottom:1rem;font-size:13px">Veuillez payer votre abonnement PRO</p>
+    
+    <div id="paymentOptions">
+      <div style="background:var(--bg3);border:1px solid var(--border2);border-radius:10px;padding:1rem;margin-bottom:1rem">
+        <h3 style="margin-bottom:8px">📅 Abonnement Mensuel</h3>
+        <p style="color:var(--text2);font-size:13px;margin-bottom:1rem">Paiement mensuel récurrent</p>
+        <button class="btn-submit" onclick="payMonthly()" style="margin-bottom:8px">Payer 500 XAF/mois</button>
+      </div>
+      
+      <div style="background:var(--bg3);border:1px solid var(--border2);border-radius:10px;padding:1rem">
+        <h3 style="margin-bottom:8px">🎯 Après 10 Courses</h3>
+        <p style="color:var(--text2);font-size:13px;margin-bottom:1rem;"><span id="courseCount">0</span>/10 courses effectuées</p>
+        <button class="btn-submit" onclick="payAfterTrips()" id="payTripsBtn" disabled>Payer 1000 XAF</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="blockedModal">
+  <div class="modal-content" style="text-align:center">
+    <div style="font-size:64px;margin-bottom:1rem">🚫</div>
+    <h2 style="color:var(--red);margin-bottom:1rem">Compte Bloqué</h2>
+    <p style="color:var(--text2);margin-bottom:1.5rem">Votre abonnement PRO a expiré. Veuillez renouveler votre paiement.</p>
+    <button class="btn-submit" onclick="openModal('paymentModal');closeModal('blockedModal')">Renouveler l'abonnement</button>
+  </div>
+</div>
+
 <div id="toast"></div>
 
 <script>
-// ════════════════════════════════════════════
-//  GLOBAL STATE
-// ════════════════════════════════════════════
-let allDrivers = [];
-let realTimeSubscription = null;
+// CONFIGURATION ADMIN
+const ADMIN_PHONE = '694839546'; // Votre numéro
+const MONTHLY_FEE = 500; // XAF
+const TRIP_FEE = 1000; // XAF après 10 courses
 
-// ════════════════════════════════════════════
-//  TOAST NOTIFICATIONS
-// ════════════════════════════════════════════
+let allDrivers = [];
+let userLocation = null;
+let userProfile = null;
+let map = null;
+let markers = {};
+
+async function requestGeolocation() {
+  return new Promise((resolve) => {
+    if (!navigator.geolocation) {
+      resolve(null);
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        userLocation = {
+          latitude: pos.coords.latitude,
+          longitude: pos.coords.longitude
+        };
+        resolve(userLocation);
+      },
+      () => resolve(null),
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  });
+}
+
+function initMap() {
+  if (!map) {
+    map = L.map('map').setView([3.8667, 11.5167], 13);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap',
+      maxZoom: 19
+    }).addTo(map);
+  }
+}
+
+function updateMapMarkers() {
+  if (!map) return;
+  Object.values(markers).forEach(m => map.removeLayer(m));
+  markers = {};
+  
+  if (userLocation) {
+    L.circleMarker([userLocation.latitude, userLocation.longitude], {
+      radius: 8, fillColor: '#FFD600', color: '#fff', weight: 2, fillOpacity: 0.8
+    }).addTo(map).bindPopup('📍 Vous');
+  }
+  
+  allDrivers.forEach((driver, idx) => {
+    if (driver.latitude && driver.longitude) {
+      const color = driver.status === 'online' ? '#00E676' : '#FF5252';
+      markers[idx] = L.circleMarker([driver.latitude, driver.longitude], {
+        radius: 6, fillColor: color, color: '#fff', weight: 2, fillOpacity: 0.8
+      }).addTo(map).bindPopup(`🚕 ${driver.name}`);
+    }
+  });
+}
+
+function calculateDistance(lat1, lon1, lat2, lon2) {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return (R * c).toFixed(1);
+}
+
+function openModal(id) {
+  document.getElementById(id).classList.add('active');
+}
+
+function closeModal(id) {
+  document.getElementById(id).classList.remove('active');
+}
+
+async function authenticate() {
+  const email = document.getElementById('authEmail').value.trim();
+  const password = document.getElementById('authPassword').value;
+  const isPro = document.getElementById('isPro').checked;
+  
+  if (!email || !password) {
+    showToast('Remplissez tous les champs', 'error');
+    return;
+  }
+  
+  const result = await loginUser(email, password, isPro);
+  if (result.success) {
+    userProfile = result.user;
+    
+    // Vérifier si compte PRO est bloqué
+    if (userProfile.is_pro) {
+      const isBlocked = await checkProSubscription(userProfile.id);
+      if (isBlocked) {
+        openModal('blockedModal');
+        return;
+      }
+    }
+    
+    updateUserBadge();
+    closeModal('authModal');
+    renderAccountTab();
+    showToast('✓ Connecté!', 'success');
+  } else {
+    showToast('Erreur: ' + result.error, 'error');
+  }
+}
+
+async function checkProSubscription(userId) {
+  // Vérifier la dernière date de paiement
+  const lastPayment = await getLastPayment(userId);
+  
+  if (!lastPayment) return true; // Jamais payé = bloqué
+  
+  const paymentDate = new Date(lastPayment.created_at);
+  const today = new Date();
+  const daysSince = Math.floor((today - paymentDate) / (1000 * 60 * 60 * 24));
+  
+  return daysSince > 30; // Plus de 30 jours = bloqué
+}
+
+function updateUserBadge() {
+  const badge = document.getElementById('userBadge');
+  if (userProfile) {
+    badge.textContent = userProfile.email.split('@')[0];
+    badge.classList.add('logged');
+    if (userProfile.is_pro) {
+      badge.classList.add('pro-badge');
+      badge.textContent += ' 👑';
+    }
+  } else {
+    badge.textContent = 'Connexion';
+    badge.classList.remove('logged', 'pro-badge', 'blocked-badge');
+  }
+}
+
+async function payMonthly() {
+  if (!userProfile) return;
+  
+  // Créer transaction
+  const result = await addTransaction({
+    user_id: userProfile.id,
+    amount: MONTHLY_FEE,
+    operator: 'orange',
+    phone: ADMIN_PHONE,
+    status: 'pending',
+    payment_type: 'monthly',
+    description: `Abonnement PRO mensuel - 500 XAF`
+  });
+  
+  if (result.success) {
+    // Lancer paiement USSD
+    const msg = encodeURIComponent(`Paiement Taxi Proxi - 500 XAF - Abonnement mensuel`);
+    window.location.href = `tel:*115*1*1*${ADMIN_PHONE}*${MONTHLY_FEE}#`;
+    showToast('✓ Paiement initié. Veuillez confirmer.', 'success');
+    closeModal('paymentModal');
+  }
+}
+
+async function payAfterTrips() {
+  if (!userProfile) return;
+  
+  const trips = await getUserTripsCount(userProfile.id);
+  if (trips < 10) {
+    showToast('Vous devez avoir 10 courses minimum', 'error');
+    return;
+  }
+  
+  const result = await addTransaction({
+    user_id: userProfile.id,
+    amount: TRIP_FEE,
+    operator: 'orange',
+    phone: ADMIN_PHONE,
+    status: 'pending',
+    payment_type: 'after_trips',
+    description: `Abonnement PRO après ${trips} courses - 1000 XAF`
+  });
+  
+  if (result.success) {
+    window.location.href = `tel:*115*1*1*${ADMIN_PHONE}*${TRIP_FEE}#`;
+    showToast('✓ Paiement initié. Veuillez confirmer.', 'success');
+    closeModal('paymentModal');
+  }
+}
+
 let toastTimer;
 function showToast(msg, type='info') {
   const t = document.getElementById('toast');
@@ -263,23 +452,25 @@ function showToast(msg, type='info') {
   toastTimer = setTimeout(() => t.classList.remove('show'), 3000);
 }
 
-// ════════════════════════════════════════════
-//  TAB SWITCHING
-// ════════════════════════════════════════════
 function switchTab(tab, btn) {
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('tab-' + tab).classList.add('active');
   if (btn) btn.classList.add('active');
+  
+  if (tab === 'find' && map) {
+    setTimeout(() => map.invalidateSize(), 100);
+  }
 }
 
 function goAccount() {
-  switchTab('account', document.querySelectorAll('.nav-btn')[2]);
+  if (!userProfile) {
+    openModal('authModal');
+  } else {
+    switchTab('account', document.querySelectorAll('.nav-btn')[2]);
+  }
 }
 
-// ════════════════════════════════════════════
-//  LOAD DRIVERS FROM SUPABASE
-// ════════════════════════════════════════════
 async function loadDrivers() {
   const result = await getAllDrivers();
   
@@ -290,26 +481,36 @@ async function loadDrivers() {
   }
 
   allDrivers = result.data || [];
+  
+  if (userLocation) {
+    allDrivers.forEach(driver => {
+      if (driver.latitude && driver.longitude) {
+        driver.distance = calculateDistance(
+          userLocation.latitude,
+          userLocation.longitude,
+          driver.latitude,
+          driver.longitude
+        );
+      }
+    });
+    allDrivers.sort((a, b) => (parseFloat(a.distance) || 999) - (parseFloat(b.distance) || 999));
+  }
+  
   renderDrivers();
   updateStats();
+  updateMapMarkers();
 }
 
-// ════════════════════════════════════════════
-//  UPDATE STATISTICS
-// ════════════════════════════════════════════
 function updateStats() {
   const total = allDrivers.length;
   const online = allDrivers.filter(d => d.status === 'online').length;
-  const offline = allDrivers.filter(d => d.status === 'offline').length;
+  const closest = allDrivers.find(d => d.distance) || { distance: 'N/A' };
   
   document.getElementById('statTrajets').textContent = total;
   document.getElementById('statOnline').textContent = online;
-  document.getElementById('statOffline').textContent = offline;
+  document.getElementById('statDistance').textContent = closest.distance + 'km' || 'N/A';
 }
 
-// ════════════════════════════════════════════
-//  RENDER DRIVERS LIST
-// ════════════════════════════════════════════
 function renderDrivers() {
   const el = document.getElementById('trajetsList');
   
@@ -321,34 +522,30 @@ function renderDrivers() {
   el.innerHTML = allDrivers.map(driver => {
     const isOnline = driver.status === 'online';
     const badge = isOnline ? '✓ En ligne' : '✗ Hors ligne';
-    const badgeClass = isOnline ? 'badge-green' : 'badge-red';
+    const distance = driver.distance ? `${driver.distance}km` : 'N/A';
     
     return `
       <div class="trajet-card">
         <div class="trajet-top">
-          <div class="trajet-driver">
-            <div class="driver-avatar">${driver.name.charAt(0).toUpperCase()}</div>
+          <div style="display:flex;align-items:center;gap:10px">
+            <div class="driver-avatar">${driver.name.charAt(0)}</div>
             <div>
-              <div class="driver-name">${driver.name}</div>
-              <div class="driver-car">${driver.vehicle_type} • ${driver.vehicle_plate}</div>
+              <div style="font-weight:600;font-size:14px">${driver.name}</div>
+              <div style="font-size:11px;color:var(--text2)">${driver.vehicle_type} • ${driver.vehicle_plate}</div>
             </div>
           </div>
-          <span class="trajet-badge ${badgeClass}">${badge}</span>
+          <span style="padding:4px 10px;border-radius:100px;font-size:11px;color:var(--green)">${badge}</span>
         </div>
         
         <div class="trajet-meta">
           <div class="meta-chip"><span>⭐</span> ${driver.rating || 4.5}</div>
-          <div class="meta-chip"><span>🚗</span> ${driver.total_trips || 0} trajets</div>
-          <div class="meta-chip"><span>📧</span> ${driver.email}</div>
+          <div class="meta-chip"><span>🚗</span> ${driver.total_trips || 0}</div>
+          <div class="meta-chip"><span>📍</span> ${distance}</div>
         </div>
         
         <div class="trajet-actions">
-          <button class="btn-wa" onclick="contactWA('${driver.phone}')">
-            💬 WhatsApp
-          </button>
-          <button class="btn-call" onclick="callDriver('${driver.phone}')">
-            📞 Appeler
-          </button>
+          <button class="btn-wa" onclick="contactWA('${driver.phone}')">💬 WhatsApp</button>
+          <button class="btn-call" onclick="callDriver('${driver.phone}')">📞 Appel</button>
         </div>
       </div>
     `;
@@ -357,69 +554,78 @@ function renderDrivers() {
 
 function renderEmptyDrivers() {
   const el = document.getElementById('trajetsList');
-  el.innerHTML = `
-    <div class="empty">
-      <div class="empty-icon">🔍</div>
-      <p>Aucun chauffeur disponible<br>pour le moment.</p>
+  el.innerHTML = '<div class="empty"><div class="empty-icon">🔍</div><p>Aucun chauffeur</p></div>';
+}
+
+function renderAccountTab() {
+  const el = document.getElementById('accountContent');
+  
+  if (!userProfile) {
+    el.innerHTML = '<div class="empty"><div class="empty-icon">👤</div><p>Connectez-vous</p></div>';
+    return;
+  }
+  
+  const proHtml = userProfile.is_pro ? `
+    <div class="pro-section">
+      <div style="font-weight:600;margin-bottom:8px">👑 Compte PRO</div>
+      <p style="font-size:13px;color:var(--text2);margin-bottom:1rem">Paiement: 500 XAF/mois ou 1000 XAF après 10 courses</p>
+      <button class="btn-submit" onclick="openModal('paymentModal')" style="margin-bottom:1rem">💳 Renouveler l'abonnement</button>
     </div>
+  ` : '';
+  
+  el.innerHTML = `
+    <h2 style="font-family:'Syne',sans-serif;font-size:20px;margin-bottom:1.5rem">Mon Profil</h2>
+    <p style="color:var(--text2);margin-bottom:1.5rem">Email: ${userProfile.email}</p>
+    ${proHtml}
+    <button class="btn-submit btn-danger" onclick="logout()">Se déconnecter</button>
   `;
 }
 
-// ════════════════════════════════════════════
-//  REGISTER NEW DRIVER
-// ════════════════════════════════════════════
 async function registerDriver() {
   const name = document.getElementById('driverName').value.trim();
   const email = document.getElementById('driverEmail').value.trim();
   const phone = document.getElementById('driverPhone').value.trim();
   const plate = document.getElementById('driverPlate').value.trim();
   const type = document.getElementById('driverType').value;
-  const status = document.getElementById('driverStatus').value;
 
   if (!name || !email || !phone || !plate) {
-    showToast('Veuillez remplir tous les champs', 'error');
+    showToast('Remplissez tous les champs', 'error');
     return;
   }
 
   const btn = document.getElementById('btnRegister');
   btn.disabled = true;
-  btn.innerHTML = '<span class="loading-spinner"></span> Enregistrement...';
+  btn.innerHTML = 'Enregistrement...';
 
   const result = await addDriver({
-    name,
-    email,
-    phone,
+    name, email, phone,
     vehicle_plate: plate,
     vehicle_type: type,
-    status,
+    status: 'offline',
     rating: 4.5,
-    total_trips: 0
+    total_trips: 0,
+    latitude: userLocation?.latitude,
+    longitude: userLocation?.longitude
   });
 
   btn.disabled = false;
-  btn.innerHTML = '🚕 Enregistrer le chauffeur';
+  btn.innerHTML = '🚕 Enregistrer';
 
   if (result.success) {
-    // Réinitialiser le formulaire
     document.getElementById('driverName').value = '';
     document.getElementById('driverEmail').value = '';
     document.getElementById('driverPhone').value = '';
     document.getElementById('driverPlate').value = '';
-    document.getElementById('driverType').value = 'Sedan';
-    document.getElementById('driverStatus').value = 'offline';
     
-    showToast('✓ Chauffeur enregistré avec succès!', 'success');
+    showToast('✓ Enregistré!', 'success');
     loadDrivers();
   } else {
     showToast('Erreur: ' + result.error, 'error');
   }
 }
 
-// ════════════════════════════════════════════
-//  CONTACT FUNCTIONS
-// ════════════════════════════════════════════
 function contactWA(phone) {
-  const msg = encodeURIComponent('Bonjour ! Je vous contacte via Taxi Proxi. Êtes-vous disponible ?');
+  const msg = encodeURIComponent('Bonjour! Je vous contacte via Taxi Proxi.');
   window.open(`https://wa.me/237${phone}?text=${msg}`, '_blank');
 }
 
@@ -427,53 +633,36 @@ function callDriver(phone) {
   window.location.href = `tel:+237${phone}`;
 }
 
-// ════════════════════════════════════════════
-//  REAL-TIME SUBSCRIPTION
-// ════════════════════════════════════════════
-function setupRealtimeSubscription() {
-  realTimeSubscription = subscribeToDrivers((payload) => {
-    console.log('Changement détecté:', payload.eventType);
-    loadDrivers();
-  });
+function logout() {
+  userProfile = null;
+  updateUserBadge();
+  renderAccountTab();
+  showToast('✓ Déconnecté', 'success');
 }
 
-// ════════════════════════════════════════════
-//  INITIALIZATION
-// ════════════════════════════════════════════
 window.addEventListener('load', async () => {
   setTimeout(async () => {
     try {
-      // Initialize Supabase
       const initialized = await initSupabase();
       
       if (!initialized) {
-        showToast('❌ Erreur: Supabase non disponible', 'error');
+        showToast('Erreur Supabase', 'error');
         renderEmptyDrivers();
         return;
       }
       
       document.getElementById('splash').style.display = 'none';
       
-      // Charger les chauffeurs depuis Supabase
+      await requestGeolocation();
+      initMap();
       await loadDrivers();
       
-      // S'abonner aux changements en temps réel
-      setupRealtimeSubscription();
-      
-      showToast('✓ Connecté à Supabase', 'success');
+      showToast('✓ Prête', 'success');
     } catch (error) {
-      console.error('Initialization error:', error);
-      showToast('❌ Erreur d\'initialisation: ' + error.message, 'error');
-      renderEmptyDrivers();
+      console.error(error);
+      showToast('Erreur', 'error');
     }
   }, 2200);
-});
-
-// Nettoyage au déchargement
-window.addEventListener('unload', () => {
-  if (realTimeSubscription) {
-    unsubscribeFromDrivers(realTimeSubscription);
-  }
 });
 </script>
 
